@@ -1,0 +1,235 @@
+unit Unit5;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, IdTCPConnection,
+  IdTCPClient, IdHTTP, IdBaseComponent, IdComponent, IdIOHandler,
+  IdIOHandlerSocket, IdIOHandlerStack, IdSSL, IdSSLOpenSSL, Vcl.OleCtrls,
+  SHDocVw, IdCookieManager;
+
+type
+  TForm5 = class(TForm)
+    IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL;
+    IdHTTP1: TIdHTTP;
+    Button1: TButton;
+    Memo1: TMemo;
+    Edit1: TEdit;
+    Edit2: TEdit;
+    Button2: TButton;
+    Button3: TButton;
+    Edit3: TEdit;
+    WebBrowser1: TWebBrowser;
+    Button4: TButton;
+    Button5: TButton;
+    IdCookieManager1: TIdCookieManager;
+    Memo2: TMemo;
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure Button4Click(Sender: TObject);
+    procedure Button5Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form5: TForm5;
+  detectClk: integer;
+implementation
+
+{$R *.dfm}
+
+procedure TForm5.Button1Click(Sender: TObject);
+var respStr,link, tempStr:string;
+log:TStringStream;
+begin
+  link:='{"username":"'+Edit1.Text+'","password":"'+Edit2.Text+'","captcha_id":null,"captcha_solution":""}';
+  log:=TStringStream.Create(Utf8Encode(link));
+  IdHTTP1.Request.ContentType:='application/json';
+  IdHTTP1.Request.CharSet := 'utf-8';
+  respStr:=IdHTTP1.Post('https://suppliers.wildberries.ru/api/login', log);
+  Memo1.Lines.Add('['+Timetostr(time)+']'+'Авторизация...');
+  if pos('userId', respStr)<>0 then
+  begin
+    Memo1.Lines.Add('['+Timetostr(time)+']'+'Авторизация прошла успешно');
+    tempStr:=respStr;
+    Delete(tempStr,1,pos('userId',tempStr));
+    Delete(tempStr,1,pos(':',tempStr));
+    Delete(tempStr,pos(',',tempStr),tempStr.Length-1);
+    Memo1.Lines.Add('['+Timetostr(time)+']'+'User ID: '+tempStr);
+    tempStr:=respStr;
+    Delete(tempStr,1,pos('phone',tempStr));
+    Delete(tempStr,1,pos(':',tempStr)+1);
+    Delete(tempStr,pos('}',tempStr),tempStr.Length-1);
+    Memo1.Lines.Add('['+Timetostr(time)+']'+'Телефон: '+tempStr);
+    detectClk:=1;
+  end
+  else
+    begin
+    Memo1.Lines.Add('['+Timetostr(time)+']'+'Ошибка авторизации');
+    detectClk:=0;
+    end;
+end;
+
+procedure TForm5.Button2Click(Sender: TObject);
+var s:string;
+begin
+s:=IdHTTP1.Get('https://suppliers.wildberries.ru/logout');
+Memo1.Lines.Add('['+Timetostr(time)+']'+'Выход из аккаунта');
+detectClk:=0;
+end;
+
+procedure TForm5.Button3Click(Sender: TObject);
+var s:string;
+respStr, request1, request2, request3, tempStr, link:string;
+log:TStringStream;
+begin
+if detectClk=1 then
+begin
+  s:=IdHTTP1.Get('https://suppliers.wildberries.ru/product-card-api/api/v1/product-card/web/nm/find?nm='+Edit3.Text+'');
+  if pos('sa', s)<>0 then
+  begin
+   Memo1.Lines.Add('['+Timetostr(time)+']'+'Товар найден');
+   Delete(s,1,pos('sa',s));
+   Delete(s,1,pos(':',s));
+   Delete(s,pos(',',s),s.Length-1);
+   Memo1.Lines.Add('['+Timetostr(time)+']'+'Артикул товара: '+s);
+   //request2:='{"origin":{"imtId":10421631,'
+  // +'"imtName":{"id":3903043,'
+  // +'"name":"Майка бельевая бесшовная из глади СУПРЕМ"}'
+  // +',"saImt":"1003GARIOLDI",'
+  // +'"brand":{"id":84640,'
+  // +'"name":"GARIOLDI"},'
+   //+'"direction":null,'
+  // +'"subject":{"id":131,'
+  // +'"name":"Майки';
+ request1:='{"origin":{"imtId":10421631,"imtName":{"id":3903043,'
+    +'"name":"Майка бельевая бесшовная из глади СУПРЕМ"},"saImt":"1003GARIOLDI","brand":'
+    +'{"id":84640,"name":"GARIOLDI"},"direction":null,"subject":{"id":131,"name":'
+    +'"Майки бельевые"},"subject_req":{"isConsistRequired":true,"isCollectionRequired"'
+    +':null,"isKindRequired":true,"isSeasonRequired":false,"isStyleRequired":false,"'
+    +'isDirectionRequired":null,"isDescriptionRequired":null,"isSizeReq":true,"sizeType":2,'
+    +'"subject_sf":"Майка бельевая","isColorReq":null},"tnved":{"id":38873,"name":"'
+    +'6109909000"},"factory":{"id":0,"name":"","country":{"id":792,"name":""}},"season"'
+    +':null,"style":null,"kind":{"id":1,"name":"Мужской"},"typeSizeGroup":null,"wbSizeGroup"'
+    +':{"id":2,"name":"Мужская одежда"},"promoUrl":"","youtubeUrl":"","consists":[{"id":2,'
+    +'"name":"хлопок","percent":100}],"suppliers":[{"id":71213,"name":"ПОКУПКАЛЮКС ООО",'
+    +'"isMain":true}],"contents":[{"id":83,"name":"майка"}],"technologies":[],"addedOptions"'
+    +':[{"id":12,"name":"Рисунок","required":0,"maxCount":2,"si":null,"value":0,"ext":null,'
+    +'"type":1},{"id":51,"name":"Любимые герои","required":0,"maxCount":1,"si":null,"value":'
+    +'0,"ext":null,"type":1},{"id":22438,"name":"Особенности белья","required":0,"maxCount":'
+    +'3,"si":null,"value":0,"ext":null,"type":1},{"id":73766,"name":"Назначение'
+    +'белья/купальника","required":0,"maxCount":3,"si":null,"value":0,"ext":null,"type":1},'
+    +'{"id":90657,"name":"Длина изделия по спинке","required":0,"maxCount":0,"si":{"id":1,'
+    +'"name":"см"},"value":0,"ext":null,"type":4},{"id":165482,"name":"Рост модели на фото",'
+    +'"required":0,"maxCount":0,"si":{"id":1,"name":"см"},"value":0,"ext":null,"type":4},'
+    +'{"id":165505,"name":"Параметры модели на фото (ОГ-ОТ-ОБ)","required":0,"maxCount":1,'
+    +'"si":null,"value":0,"ext":null,"type":1}],"description":{"id":3930441,"text":'
+    +'"1234567890"},"nomenclatures":[{"id":13927988,"collection":{"id":39,"name":'
+    +'"Базовая коллекция"},"colors":[{"id":16777215,"name":"белый","isMain":true}],"sizes":'
+    +'[{"id":41797359,"techSizeName":"L","wbSize":{"id":88,"name":"48"},"warehousePrice":248,'
+    +'"priceRu":400,"quantity":0,"nds":"20"},{"id":41797360,"techSizeName":"M","wbSize":{"id":'
+    +'85,"name":"46"},"warehousePrice":248,"priceRu":400,"quantity":0,"nds":"20"},{"id":'
+    +'41797361,"techSizeName":"S","wbSize":{"id":82,"name":"44"},"warehousePrice":248,'
+    +'"priceRu":400,"quantity":0,"nds":"20"}],"saNm":"1003GARIOLDI1001","images":[{"path":'
+    +'"https://img1.wildberries.ru/big/new/13920000/13927988-1.jpg"},'
+    +'{"path":"https://img1.wildberries.ru/big/new/13920000/13927988-2.jpg"}]}],"inAssortment":false,"isOversized":false,"keys":{"brandprop":"-2125815800","chrt":"1772958934","color_13927988":"1772958927","consist":"1772958919","content":"1772958921","kind":'
+    +'"1772958917","option":"","sa_imt_key":"1025744914","sa_nm_key_13927988":"1904545763"'
+    +'}},"edited":{"imtId":10421631,"imtName":{"id":3903043,"name":'
+    +'"Майка бельевая бесшовная из глади СУПРЕМ"},"saImt":"1003GARIOLDI","brand":'
+    +'"id":84640,"name":"GARIOLDI"},"direction":null,"subject":{"id":131,"name":'
+    +'"Майки бельевые"},"subject_req":{"isConsistRequired":true,"isCollectionRequired":null,"'
+    +'isKindRequired":true,"isSeasonRequired":false,"isStyleRequired":false,'
+    +'"isDirectionRequired":null,"isDescriptionRequired":null,"isSizeReq":true,"sizeType":2'
+    +',"subject_sf":"Майка бельевая","isColorReq":null},"tnved":{"id":38873,"name":"6109909000"}'
+    +',"factory":{"id":0,"name":"","country":{"id":792,"name":""}},"season":null,"style":null,"kind":'
+    +'{"id":1,"name":"Мужской"},"typeSizeGroup":null,"wbSizeGroup":{"id":2,"name":'
+    +'"Мужская одежда"},"promoUrl":"","youtubeUrl":"","consists":[{"id":2,"name":"хлопок",'
+    +'"percent":100}],"suppliers":[{"id":71213,"name":"ПОКУПКАЛЮКС ООО","isMain":true}],'
+    +'"contents":[{"id":83,"name":"майка"}],"technologies":[],"addedOptions":[{"id":12,'
+    +'"name":"Рисунок","required":0,"maxCount":2,"si":null,"value":0,"ext":null,"type":1},'
+    +'{"id":51,"name":"Любимые герои","required":0,"maxCount":1,"si":null,"value":0,"ext":null,'
+    +'"type":1},{"id":22438,"name":"Особенности белья","required":0,"maxCount":3,"si":null,'
+    +'"value":0,"ext":null,"type":1},{"id":73766,"name":"Назначение белья/купальника","required"'
+    +':0,"maxCount":3,"si":null,"value":0,"ext":null,"type":1},{"id":90657,"name":'
+    +'"Длина изделия по спинке","required":0,"maxCount":0,"si":{"id":1,"name":"см"},"value":0,'
+    +'"ext":null,"type":4},{"id":165482,"name":"Рост модели на фото","required":0,"maxCount":0,'
+    +'"si":{"id":1,"name":"см"},"value":0,"ext":null,"type":4},{"id":165505,"name":'
+    +'"Параметры модели на фото (ОГ-ОТ-ОБ)","required":0,"maxCount":1,"si":null,"value":0,"ext"'
+    +':null,"type":1}],"description":{"id":3930441,"text":"'+Timetostr(time)+'"},"nomenclatures":[{"id":13927988,'
+    +'"collection":{"id":39,"name":"Базовая коллекция"},"colors":[{"id":16777215,"name":'
+    +'"белый","isMain":true,"colorView":"#ffffff","_main":true}],"sizes":[{"id":41797359,'
+    +'"techSizeName":"L","wbSize":{"id":88,"name":"48"},"warehousePrice":248,"priceRu":400'
+    +',"quantity":0,"nds":"20"},{"id":41797360,"techSizeName":"M","wbSize":{"id":85,"name":'
+    +'"46"},"warehousePrice":248,"priceRu":400,"quantity":0,"nds":"20"},{"id":41797361,'
+    +'"techSizeName":"S","wbSize":{"id":82,"name":"44"},"warehousePrice":248,"priceRu":400,'
+    +'"quantity":0,"nds":"20"}],"saNm":"1003GARIOLDI1001","images":['
+    +'{"path":"https://img1.wildberries.ru/big/new/13920000/13927988-1.jpg"},'
+    +'{"path":"https://img1.wildberries.ru/big/new/13920000/13927988-2.jpg"}],'
+    +'"colorset":null}],"inAssortment":false,"isOversized":false,"keys":'
+    +'{"brandprop":"-2125815800","chrt":"1772958934","color_13927988":"1772958927","consist":'
+    +'"1772958919","content":"1772958921","kind":"1772958917","option":"","sa_imt_key":"1025744914",'
+    +'"sa_nm_key_13927988":"1904545763"}},"comment":"","imtProblem":0}';
+    log:=TStringStream.Create(Utf8Encode(request1));
+    IdHTTP1.Request.ContentType:='application/json';
+    IdHTTP1.Request.CharSet := 'utf-8';
+    respStr:=IdHTTP1.Post('https://suppliers.wildberries.ru/product-card-api/api/v1/product-card/test/card/save', log);
+    Memo1.Lines.Add('['+Timetostr(time)+']'+respStr);
+  end
+  else
+   Memo1.Lines.Add('['+Timetostr(time)+']'+'Товар не найден');
+end
+else
+  Memo1.Lines.Add('['+Timetostr(time)+']'+'Войдите в аккаунт WildBerries');
+end;
+
+procedure TForm5.Button4Click(Sender: TObject);
+var I:integer;
+s:string;
+html_tag:variant;
+begin
+ html_tag:=WebBrowser1.OleObject.Document.Forms.Item(0).Elements;
+ for i:=0 to (html_tag.Length-1)  do
+ begin
+   if  html_tag.Item(i).tagName='TEXTAREA' then
+    html_tag.Item(i).innerText:='hello world';
+ end;
+end;
+
+procedure TForm5.Button5Click(Sender: TObject);
+var s:string;
+respStr, request1, request2, request3, tempStr, link:string;
+log:TStringStream;
+begin
+Memo2.Lines.Clear;
+request1:=IdHTTP1.Get('https://suppliers.wildberries.ru/product-card-api/api/v1/product-card/web/card?by=1&value='+Edit3.Text+'');
+Delete(request1, pos('p',request1), (pos('t',request1)));
+Insert('"origin":', request1, pos('"',request1));
+Delete(request1,pos(':',request1)+1,1);
+Delete(request1,pos('isSupplierEnv',request1)-2,request1.Length);
+request2:=request1;
+Delete(request2, pos('{',request2), (pos('n',request2)));
+Insert(',"edited":', request2, pos('{',request2));
+Delete(request2, 1, (pos(',',request2))-1);
+Insert(Timetostr(time), request2, pos('"text":',request2)+8);
+request3:=request1+request2+',"comment":"","imtProblem":0}';
+Memo2.Lines.Add(request1+request2+',"comment":"","imtProblem":0}');
+ //request2:='{"entity_id":52622,"entity_name":"Beijing Kamiershangpin International Trade Co., Ltd.","nm_id":13927988,"supplier_id":0}';
+ log:=TStringStream.Create(Utf8Encode(request3));
+ IdHTTP1.Request.ContentType:='application/json';
+ IdHTTP1.Request.CharSet := 'utf-8';
+ respStr:=IdHTTP1.Post('https://suppliers.wildberries.ru/product-card-api/api/v1/product-card/test/card/save', log);
+end;
+
+procedure TForm5.FormCreate(Sender: TObject);
+begin
+Memo1.Lines.Clear;
+IdSSLIOHandlerSocketOpenSSL1.SSLOptions.Method:=sslvTLSv1_2;
+end;
+
+end.
